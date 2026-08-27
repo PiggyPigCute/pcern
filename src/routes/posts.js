@@ -14,11 +14,21 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const [post, messages] = await Promise.all([
+    const [post, page] = await Promise.all([
       discord.getThreadPost(req.params.id),
       discord.getThreadMessages(req.params.id),
     ]);
-    res.json({ post, messages });
+    res.json({ post, messages: page.messages, hasMore: page.hasMore });
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// pagination vers le passé : ?before=<id du plus ancien message déjà chargé>
+router.get('/:id/messages', requireAuth, async (req, res) => {
+  try {
+    const page = await discord.getThreadMessages(req.params.id, { before: req.query.before });
+    res.json(page);
   } catch (err) {
     res.status(404).json({ error: err.message });
   }

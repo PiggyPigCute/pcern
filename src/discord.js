@@ -133,10 +133,17 @@ async function getThreadPost(threadId) {
   return threadToPost(await fetchOwnThread(threadId));
 }
 
-async function getThreadMessages(threadId) {
+const MESSAGES_PAGE_SIZE = 50;
+
+// ne charge que les derniers messages par défaut ; passer `before` (un id de
+// message) pour remonter dans l'historique, comme le fait Discord lui-même
+async function getThreadMessages(threadId, { before, limit = MESSAGES_PAGE_SIZE } = {}) {
   const thread = await fetchOwnThread(threadId);
-  const messages = await thread.messages.fetch({ limit: 100 });
-  return Promise.all([...messages.values()].reverse().map(messageToJSON));
+  const options = { limit };
+  if (before) options.before = before;
+  const page = await thread.messages.fetch(options);
+  const messages = await Promise.all([...page.values()].reverse().map(messageToJSON));
+  return { messages, hasMore: page.size === limit };
 }
 
 async function ensureWebhook() {

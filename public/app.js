@@ -1,4 +1,12 @@
-const state = { user: null, posts: [], currentThreadId: null, seenMessageIds: new Set() };
+const state = {
+  user: null,
+  posts: [],
+  currentThreadId: null,
+  seenMessageIds: new Set(),
+  oldestMessageId: null,
+  hasMoreMessages: false,
+  loadingMore: false,
+};
 // jamais réinitialisé (contrairement à state.seenMessageIds, remis à zéro à
 // chaque post ouvert) : un message envoyé depuis le site est diffusé deux
 // fois (broadcast immédiat + écho gateway Discord) — sert à ne compter
@@ -240,6 +248,9 @@ function highlightActivePost(threadId) {
 async function openThread(id) {
   highlightActivePost(id);
   state.seenMessageIds = new Set();
+  state.oldestMessageId = null;
+  state.hasMoreMessages = false;
+  state.loadingMore = false;
   document.getElementById('post-placeholder').classList.add('hidden');
   document.getElementById('thread-view').classList.remove('hidden');
   const titleEl = document.getElementById('thread-title');
@@ -247,10 +258,12 @@ async function openThread(id) {
   titleEl.textContent = '…';
   list.innerHTML = '';
   try {
-    const { post, messages } = await api(`/api/posts/${id}`);
+    const { post, messages, hasMore } = await api(`/api/posts/${id}`);
     titleEl.textContent = post.title;
     upsertPostInList(post);
     highlightActivePost(id);
+    state.hasMoreMessages = hasMore;
+    state.oldestMessageId = messages[0]?.id || null;
     messages.forEach(m => {
       state.seenMessageIds.add(m.id);
       appendMessage(m);
@@ -260,6 +273,36 @@ async function openThread(id) {
   }
 }
 
+async function loadOlderMessages() {
+  if (state.loadingMore || !state.hasMoreMessages || !state.oldestMessageId) return;
+  state.loadingMore = true;
+  const list = document.getElementById('thread-messages');
+  const indicator = document.getElementById('loading-older');
+  indicator.classList.remove('hidden');
+  try {
+    const { messages, hasMore } = await api(`/api/posts/${state.currentThreadId}/messages?before=${state.oldestMessageId}`);
+    state.hasMoreMessages = hasMore;
+    if (messages.length) {
+      state.oldestMessageId = messages[0].id;
+      const previousHeight = list.scrollHeight;
+      const fragment = document.createDocumentFragment();
+      messages.forEach(m => {
+        state.seenMessageIds.add(m.id);
+        fragment.appendChild(buildMessageRow(m));
+      });
+      list.insertBefore(fragment, list.firstChild);
+      list.scrollTop += list.scrollHeight - previousHeight;
+    }
+  } finally {
+    state.loadingMore = false;
+    indicator.classList.add('hidden');
+  }
+}
+
+document.getElementById('thread-messages').addEventListener('scroll', e => {
+  if (e.target.scrollTop < 80) loadOlderMessages();
+});
+
 function formatTimestamp(iso) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
@@ -268,16 +311,19 @@ function formatTimestamp(iso) {
   }).format(date);
 }
 
-function appendMessage(m) {
-  const list = document.getElementById('thread-messages');
+function buildMessageRow(m) {
   const avatar = h('img', { class: 'avatar', attrs: { src: m.authorAvatar || '', alt: '' } });
   const header = h('div', { class: 'message-header' }, [
     h('strong', { text: m.authorName }),
     h('span', { class: 'timestamp', text: formatTimestamp(m.createdAt) }),
   ]);
   const body = h('div', { class: 'message-body' }, [header, h('p', { text: m.content })]);
-  const li = h('li', { class: 'message', attrs: { 'data-message-id': m.id } }, [avatar, body]);
-  list.appendChild(li);
+  return h('li', { class: 'message', attrs: { 'data-message-id': m.id } }, [avatar, body]);
+}
+
+function appendMessage(m) {
+  const list = document.getElementById('thread-messages');
+  list.appendChild(buildMessageRow(m));
   list.scrollTop = list.scrollHeight;
 }
 
