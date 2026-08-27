@@ -18,8 +18,13 @@
 
 * { box-sizing: border-box; }
 
-body {
+html, body {
+  height: 100%;
   margin: 0;
+  overflow: hidden;
+}
+
+body {
   font-family: var(--body);
   background: var(--violet-deep);
   color: var(--cream);
@@ -36,7 +41,8 @@ button, input, textarea { font: inherit; }
 /* --- écran plein page (auth / vérification) --- */
 
 .screen-center {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,7 +165,7 @@ textarea { min-height: 4rem; resize: vertical; }
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
@@ -171,6 +177,7 @@ textarea { min-height: 4rem; resize: vertical; }
   flex-direction: column;
   padding: 20px 16px;
   gap: 16px;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -185,6 +192,8 @@ textarea { min-height: 4rem; resize: vertical; }
   list-style: none;
   padding: 0;
   margin: 0;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -228,9 +237,11 @@ textarea { min-height: 4rem; resize: vertical; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .topbar {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -283,6 +294,8 @@ textarea { min-height: 4rem; resize: vertical; }
 .account-panel {
   max-width: 420px;
   margin: 24px;
+  max-height: 100%;
+  overflow-y: auto;
   background: var(--paper);
   color: var(--ink);
   border-radius: 12px;
@@ -291,15 +304,35 @@ textarea { min-height: 4rem; resize: vertical; }
 
 main {
   flex: 1;
-  padding: 24px;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
   color: rgba(246,239,226,.5);
   font-family: var(--mono);
   text-align: center;
-  margin-top: 20vh;
+}
+
+/* --- vue d'un post : header fixe, messages scrollables, composer fixe --- */
+
+#thread-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-header {
+  flex-shrink: 0;
+  padding: 20px 24px 12px;
 }
 
 #back-button {
@@ -308,41 +341,80 @@ main {
   color: rgba(246,239,226,.6);
   cursor: pointer;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-family: var(--mono);
   font-size: .8rem;
 }
 
-#thread-title { color: var(--yellow); margin-bottom: 16px; }
+#thread-title { color: var(--yellow); }
 
 #thread-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   list-style: none;
-  padding: 0;
-  margin: 0 0 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 700px;
+  margin: 0;
+  padding: 0 24px 12px;
+}
+
+/* le premier message (post d'origine) reste visible en haut pendant le scroll */
+#thread-messages li:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--violet-deep);
+  padding-top: 8px;
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(246,239,226,.15);
 }
 
 .message {
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: 8px;
-  padding: 10px 14px;
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  border-radius: 6px;
 }
+.message:hover { background: rgba(246,239,226,.05); }
+.message .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.message-body { flex: 1; min-width: 0; }
 .message-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  margin-bottom: 4px;
 }
-.message-header .avatar { width: 24px; height: 24px; border-radius: 50%; }
-.message p { margin: 0; white-space: pre-wrap; }
+.message-header strong { color: var(--cream); }
+.message-header .timestamp {
+  font-size: .7rem;
+  color: rgba(246,239,226,.5);
+  font-family: var(--mono);
+}
+.message p { margin: 2px 0 0; white-space: pre-wrap; color: var(--cream); }
 
-#reply-form { max-width: 700px; }
+.composer-bar {
+  flex-shrink: 0;
+  padding: 8px 24px 18px;
+}
+
+#reply-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+#reply-form textarea {
+  flex: 1;
+  min-height: 2.6rem;
+  max-height: 40vh;
+}
 
 @media (max-width: 720px) {
-  .app-shell { flex-direction: column; }
+  html, body { overflow: auto; }
+  .app-shell { flex-direction: column; height: auto; min-height: 100vh; }
   .sidebar { width: 100%; }
 }

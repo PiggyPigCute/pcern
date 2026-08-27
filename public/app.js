@@ -1,4 +1,9 @@
 const state = { user: null, posts: [], currentThreadId: null, seenMessageIds: new Set() };
+// jamais réinitialisé (contrairement à state.seenMessageIds, remis à zéro à
+// chaque post ouvert) : un message envoyé depuis le site est diffusé deux
+// fois (broadcast immédiat + écho gateway Discord) — sert à ne compter
+// qu'une fois son incrément dans le compteur de la sidebar
+const seenGlobalMessageIds = new Set();
 let wsConnected = false;
 
 function h(tag, opts = {}, children = []) {
@@ -255,13 +260,25 @@ async function openThread(id) {
   }
 }
 
+function formatTimestamp(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).format(date);
+}
+
 function appendMessage(m) {
   const list = document.getElementById('thread-messages');
-  const header = h('div', { class: 'message-header' });
-  if (m.authorAvatar) header.appendChild(h('img', { class: 'avatar', attrs: { src: m.authorAvatar, alt: '' } }));
-  header.appendChild(h('strong', { text: m.authorName }));
-  const li = h('li', { class: 'message' }, [header, h('p', { text: m.content })]);
+  const avatar = h('img', { class: 'avatar', attrs: { src: m.authorAvatar || '', alt: '' } });
+  const header = h('div', { class: 'message-header' }, [
+    h('strong', { text: m.authorName }),
+    h('span', { class: 'timestamp', text: formatTimestamp(m.createdAt) }),
+  ]);
+  const body = h('div', { class: 'message-body' }, [header, h('p', { text: m.content })]);
+  const li = h('li', { class: 'message', attrs: { 'data-message-id': m.id } }, [avatar, body]);
   list.appendChild(li);
+  list.scrollTop = list.scrollHeight;
 }
 
 document.getElementById('back-button').addEventListener('click', () => navigate(null));
@@ -283,6 +300,13 @@ document.getElementById('new-post-form').addEventListener('submit', async e => {
     navigate(post.id);
   } catch (err) {
     errorEl.textContent = err.message;
+  }
+});
+
+document.querySelector('#reply-form textarea[name="content"]').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('reply-form').requestSubmit();
   }
 });
 
@@ -316,10 +340,13 @@ function connectWebSocket() {
     if (data.type === 'newPost') {
       upsertPostInList(data.post);
     } else if (data.type === 'newMessage') {
-      const post = state.posts.find(p => p.id === data.threadId);
-      if (post) {
-        post.messageCount += 1;
-        renderPosts();
+      if (!seenGlobalMessageIds.has(data.message.id)) {
+        seenGlobalMessageIds.add(data.message.id);
+        const post = state.posts.find(p => p.id === data.threadId);
+        if (post) {
+          post.messageCount += 1;
+          renderPosts();
+        }
       }
       if (state.currentThreadId === data.threadId && !state.seenMessageIds.has(data.message.id)) {
         state.seenMessageIds.add(data.message.id);

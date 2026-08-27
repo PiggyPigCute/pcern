@@ -31,7 +31,7 @@ function init({ token, guild, forumChannel, onEvent: handler }) {
 
   client.on('threadCreate', async thread => {
     if (thread.parentId !== forumChannelId) return;
-    onEvent('newPost', await threadToPost(thread));
+    onEvent('newPost', { post: await threadToPost(thread) });
   });
 
   client.on('messageCreate', message => {
@@ -151,7 +151,12 @@ async function createForumPost({ title, content, username, avatarUrl }) {
     wait: true,
   });
   const thread = await client.channels.fetch(result.channelId);
-  return threadToPost(thread);
+  const post = await threadToPost(thread);
+  // diffusé tout de suite avec les infos qu'on connaît nous-mêmes (pseudo/
+  // avatar exacts) plutôt que d'attendre le seul écho du gateway Discord,
+  // qui ne renvoie pas de façon fiable l'avatar personnalisé d'un webhook
+  onEvent('newPost', { post });
+  return post;
 }
 
 async function postReply({ threadId, content, username, avatarUrl }) {
@@ -165,7 +170,26 @@ async function postReply({ threadId, content, username, avatarUrl }) {
     allowedMentions: { parse: [] },
     wait: true,
   });
-  return messageToJSON(result);
+  // le Message renvoyé par WebhookClient#send n'est pas hydraté par le
+  // client complet (pas de UserManager) : result.author n'a pas les
+  // méthodes de User (ex. displayAvatarURL) — on reconstruit le JSON à
+  // partir de ce qu'on a nous-mêmes envoyé plutôt que de le lire dessus
+  const message = {
+    id: result.id,
+    authorId: result.author?.id ?? null,
+    authorName: username,
+    authorAvatar: avatarUrl,
+    content: result.content,
+    createdAt: new Date().toISOString(),
+    viaWebhook: true,
+  };
+  // même logique que createForumPost : on diffuse nous-mêmes l'avatar exact
+  // plutôt que de compter sur l'écho gateway (message.author.displayAvatarURL()
+  // n'y reflète pas de façon fiable l'avatar personnalisé du webhook — Discord
+  // ne renvoie pas toujours un hash d'avatar pour ces messages, et retombe
+  // alors sur son propre avatar générique)
+  onEvent('newMessage', { threadId, message });
+  return message;
 }
 
 module.exports = {

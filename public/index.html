@@ -96,14 +96,18 @@
         <p class="placeholder" id="post-placeholder">Sélectionne un post dans la liste, ou crée-en un nouveau.</p>
 
         <section id="thread-view" class="hidden">
-          <button id="back-button">&larr; Retour</button>
-          <h2 id="thread-title"></h2>
+          <div class="thread-header">
+            <button id="back-button">&larr; Retour</button>
+            <h2 id="thread-title"></h2>
+          </div>
           <ul id="thread-messages"></ul>
-          <form id="reply-form" class="inline-form">
-            <textarea name="content" placeholder="Votre réponse" required></textarea>
-            <button type="submit" class="btn-primary">Répondre</button>
-          </form>
-          <p class="error" id="reply-error"></p>
+          <div class="composer-bar">
+            <p class="error" id="reply-error"></p>
+            <form id="reply-form">
+              <textarea name="content" placeholder="Écrire un message… (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)" required></textarea>
+              <button type="submit" class="btn-primary">Envoyer</button>
+            </form>
+          </div>
         </section>
 
         <section id="account-view" class="account-panel hidden">
