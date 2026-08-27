@@ -34,10 +34,10 @@ function init({ token, guild, forumChannel, onEvent: handler }) {
     onEvent('newPost', { post: await threadToPost(thread) });
   });
 
-  client.on('messageCreate', message => {
+  client.on('messageCreate', async message => {
     if (!message.channel.isThread()) return;
     if (message.channel.parentId !== forumChannelId) return;
-    onEvent('newMessage', { threadId: message.channel.id, message: messageToJSON(message) });
+    onEvent('newMessage', { threadId: message.channel.id, message: await messageToJSON(message) });
   });
 
   return client.login(token).then(() => waitReady());
@@ -87,11 +87,22 @@ async function threadToPost(thread) {
   };
 }
 
-function messageToJSON(message) {
+async function resolveDisplayName(message) {
+  if (message.webhookId) return message.author.username; // pas un vrai membre du serveur
+  if (message.member) return message.member.displayName;
+  try {
+    const member = await message.guild.members.fetch(message.author.id);
+    return member.displayName;
+  } catch {
+    return message.author.username; // n'est peut-être plus sur le serveur
+  }
+}
+
+async function messageToJSON(message) {
   return {
     id: message.id,
     authorId: message.author.id,
-    authorName: message.member?.displayName || message.author.username,
+    authorName: await resolveDisplayName(message),
     authorAvatar: message.author.displayAvatarURL(),
     content: message.content,
     createdAt: message.createdAt,
@@ -125,7 +136,7 @@ async function getThreadPost(threadId) {
 async function getThreadMessages(threadId) {
   const thread = await fetchOwnThread(threadId);
   const messages = await thread.messages.fetch({ limit: 100 });
-  return [...messages.values()].reverse().map(messageToJSON);
+  return Promise.all([...messages.values()].reverse().map(messageToJSON));
 }
 
 async function ensureWebhook() {

@@ -272,7 +272,7 @@ function appendMessage(m) {
   const list = document.getElementById('thread-messages');
   const avatar = h('img', { class: 'avatar', attrs: { src: m.authorAvatar || '', alt: '' } });
   const header = h('div', { class: 'message-header' }, [
-    h('strong', { text: m.author.displayName }),
+    h('strong', { text: m.authorName }),
     h('span', { class: 'timestamp', text: formatTimestamp(m.createdAt) }),
   ]);
   const body = h('div', { class: 'message-body' }, [header, h('p', { text: m.content })]);
