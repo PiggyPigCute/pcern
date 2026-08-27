@@ -1,0 +1,14 @@
+{
+  "name": "pcern",
+  "version": "1.0.0",
+  "description": "Site web relié à un salon Discord de type forum (lecture/écriture des posts en direct)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}

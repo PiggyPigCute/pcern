@@ -1,0 +1,164 @@
+:root {
+  --bg: #1e1f24;
+  --panel: #2a2c34;
+  --text: #e8e8ea;
+  --muted: #9a9ba5;
+  --accent: #5865f2;
+  --border: #3a3c46;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 { margin: 0; font-size: 1.3rem; }
+
+main {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.hidden { display: none !important; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+form, .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input, textarea, button {
+  font: inherit;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+textarea { min-height: 4rem; resize: vertical; }
+
+button {
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+button[type="button"] {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.error {
+  color: #f38ba8;
+  min-height: 1.2em;
+  margin: 0.25rem 0 0;
+}
+
+#auth-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#auth-area .auth-form {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+#posts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.post-item:hover { border-color: var(--accent); }
+
+.post-item h3 { margin: 0 0 0.25rem; }
+
+.post-item .tags { font-size: 0.8rem; color: var(--accent); margin-bottom: 0.25rem; }
+
+.post-item .excerpt {
+  color: var(--muted);
+  margin: 0 0 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-item .meta { font-size: 0.8rem; color: var(--muted); }
+
+#back-button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+#thread-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.message p { margin: 0; white-space: pre-wrap; }

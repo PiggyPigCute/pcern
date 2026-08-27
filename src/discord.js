@@ -1,0 +1,171 @@
+const {
+  Client,
+  GatewayIntentBits,
+  ChannelType,
+  WebhookClient,
+} = require('discord.js');
+const { loadJSON, saveJSON } = require('./store');
+
+const WEBHOOK_FILE = 'webhook.json';
+const WEBHOOK_NAME = 'PCErn';
+
+let client = null;
+let guildId = null;
+let forumChannelId = null;
+let onEvent = () => {}; // (type, payload) => void, wired by server.js via ws.js
+
+function init({ token, guild, forumChannel, onEvent: handler }) {
+  if (!token) throw new Error('DISCORD_TOKEN manquant.');
+  if (!guild) throw new Error('GUILD_ID manquant.');
+  if (!forumChannel) throw new Error('FORUM_CHANNEL_ID manquant.');
+
+  guildId = guild;
+  forumChannelId = forumChannel;
+  if (handler) onEvent = handler;
+
+  client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+  });
+
+  client.on('threadCreate', async thread => {
+    if (thread.parentId !== forumChannelId) return;
+    onEvent('newPost', await threadToPost(thread));
+  });
+
+  client.on('messageCreate', message => {
+    if (!message.channel.isThread()) return;
+    if (message.channel.parentId !== forumChannelId) return;
+    onEvent('newMessage', { threadId: message.channel.id, message: messageToJSON(message) });
+  });
+
+  return client.login(token).then(() => waitReady());
+}
+
+function waitReady() {
+  if (client.isReady()) return Promise.resolve();
+  return new Promise(resolve => client.once('ready', resolve));
+}
+
+function getForumChannel() {
+  const channel = client.channels.cache.get(forumChannelId);
+  if (!channel) throw new Error('Salon forum introuvable (vérifie FORUM_CHANNEL_ID et les permissions du bot).');
+  if (channel.type !== ChannelType.GuildForum) throw new Error('Le salon configuré n\'est pas un salon forum.');
+  return channel;
+}
+
+function tagNames(channel, appliedTags) {
+  const byId = new Map(channel.availableTags.map(t => [t.id, t.name]));
+  return (appliedTags || []).map(id => byId.get(id)).filter(Boolean);
+}
+
+async function threadToPost(thread) {
+  const channel = getForumChannel();
+  let excerpt = '';
+  let authorId = thread.ownerId;
+  try {
+    const starter = await thread.fetchStarterMessage();
+    if (starter) {
+      excerpt = starter.content;
+      authorId = starter.author.id;
+    }
+  } catch {
+    // le message de départ peut avoir été supprimé
+  }
+
+  return {
+    id: thread.id,
+    title: thread.name,
+    authorId,
+    excerpt,
+    tags: tagNames(channel, thread.appliedTags),
+    messageCount: thread.messageCount ?? 0,
+    archived: thread.archived,
+    locked: thread.locked,
+    createdAt: thread.createdAt,
+  };
+}
+
+function messageToJSON(message) {
+  return {
+    id: message.id,
+    authorId: message.author.id,
+    authorName: message.member?.displayName || message.author.username,
+    authorAvatar: message.author.displayAvatarURL(),
+    content: message.content,
+    createdAt: message.createdAt,
+    viaWebhook: Boolean(message.webhookId),
+  };
+}
+
+async function listForumPosts() {
+  const channel = getForumChannel();
+  const [active, archived] = await Promise.all([
+    channel.threads.fetchActive(),
+    channel.threads.fetchArchived(),
+  ]);
+  const threads = [...active.threads.values(), ...archived.threads.values()];
+  threads.sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+  return Promise.all(threads.map(threadToPost));
+}
+
+async function getThreadMessages(threadId) {
+  const thread = await client.channels.fetch(threadId);
+  if (!thread || !thread.isThread() || thread.parentId !== forumChannelId) {
+    throw new Error('Post introuvable.');
+  }
+  const messages = await thread.messages.fetch({ limit: 100 });
+  return [...messages.values()].reverse().map(messageToJSON);
+}
+
+async function ensureWebhook() {
+  const cached = loadJSON(WEBHOOK_FILE, null);
+  if (cached) return new WebhookClient({ id: cached.id, token: cached.token });
+
+  const channel = getForumChannel();
+  const existing = (await channel.fetchWebhooks()).find(w => w.name === WEBHOOK_NAME);
+  const webhook = existing || (await channel.createWebhook({ name: WEBHOOK_NAME }));
+
+  saveJSON(WEBHOOK_FILE, { id: webhook.id, token: webhook.token });
+  return new WebhookClient({ id: webhook.id, token: webhook.token });
+}
+
+async function createForumPost({ title, content, username, avatarUrl }) {
+  const webhookClient = await ensureWebhook();
+  const result = await webhookClient.send({
+    content,
+    username,
+    avatarURL: avatarUrl || undefined,
+    threadName: title.slice(0, 100),
+    allowedMentions: { parse: [] },
+    wait: true,
+  });
+  return result.channelId;
+}
+
+async function postReply({ threadId, content, username, avatarUrl }) {
+  const thread = await client.channels.fetch(threadId);
+  if (!thread || !thread.isThread() || thread.parentId !== forumChannelId) {
+    throw new Error('Post introuvable.');
+  }
+  const webhookClient = await ensureWebhook();
+  await webhookClient.send({
+    content,
+    username,
+    avatarURL: avatarUrl || undefined,
+    threadId,
+    allowedMentions: { parse: [] },
+    wait: true,
+  });
+}
+
+module.exports = {
+  init,
+  listForumPosts,
+  getThreadMessages,
+  createForumPost,
+  postReply,
+};

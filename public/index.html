@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portail Cityen·ne d'Ernestie</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Portail Cityen·ne d'Ernestie</h1>
+    <div id="auth-area"></div>
+  </header>
+
+  <main>
+    <section id="posts-view">
+      <div id="new-post-box" class="card hidden">
+        <h2>Nouveau post</h2>
+        <form id="new-post-form">
+          <input type="text" name="title" placeholder="Titre" required maxlength="100" />
+          <textarea name="content" placeholder="Contenu du premier message" required></textarea>
+          <button type="submit">Publier</button>
+        </form>
+        <p class="error" id="new-post-error"></p>
+      </div>
+
+      <h2>Posts du forum</h2>
+      <ul id="posts-list"></ul>
+    </section>
+
+    <section id="thread-view" class="hidden">
+      <button id="back-button">&larr; Retour aux posts</button>
+      <h2 id="thread-title"></h2>
+      <ul id="thread-messages"></ul>
+
+      <form id="reply-form" class="hidden">
+        <textarea name="content" placeholder="Votre réponse" required></textarea>
+        <button type="submit">Répondre</button>
+      </form>
+      <p class="error" id="reply-error"></p>
+    </section>
+  </main>
+
+  <template id="login-template">
+    <form id="login-form" class="auth-form">
+      <input type="text" name="username" placeholder="Pseudo" required />
+      <input type="password" name="password" placeholder="Mot de passe" required />
+      <button type="submit">Connexion</button>
+      <button type="button" id="show-signup">Créer un compte</button>
+    </form>
+    <p class="error" id="login-error"></p>
+  </template>
+
+  <template id="signup-template">
+    <form id="signup-form" class="auth-form">
+      <input type="text" name="username" placeholder="Pseudo" required minlength="3" />
+      <input type="password" name="password" placeholder="Mot de passe (8+ caractères)" required minlength="8" />
+      <input type="text" name="displayName" placeholder="Nom affiché sur Discord (optionnel)" />
+      <input type="url" name="avatarUrl" placeholder="URL d'avatar (optionnel)" />
+      <button type="submit">Créer le compte</button>
+      <button type="button" id="show-login">J'ai déjà un compte</button>
+    </form>
+    <p class="error" id="signup-error"></p>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
