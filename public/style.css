@@ -335,17 +335,6 @@ main {
   padding: 20px 24px 12px;
 }
 
-#back-button {
-  background: none;
-  border: none;
-  color: rgba(246,239,226,.6);
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 12px;
-  font-family: var(--mono);
-  font-size: .8rem;
-}
-
 #thread-title { color: var(--yellow); }
 
 #thread-messages {

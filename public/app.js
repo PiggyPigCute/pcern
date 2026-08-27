@@ -272,7 +272,7 @@ function appendMessage(m) {
   const list = document.getElementById('thread-messages');
   const avatar = h('img', { class: 'avatar', attrs: { src: m.authorAvatar || '', alt: '' } });
   const header = h('div', { class: 'message-header' }, [
-    h('strong', { text: m.authorName }),
+    h('strong', { text: m.author.displayName }),
     h('span', { class: 'timestamp', text: formatTimestamp(m.createdAt) }),
   ]);
   const body = h('div', { class: 'message-body' }, [header, h('p', { text: m.content })]);
@@ -280,8 +280,6 @@ function appendMessage(m) {
   list.appendChild(li);
   list.scrollTop = list.scrollHeight;
 }
-
-document.getElementById('back-button').addEventListener('click', () => navigate(null));
 
 document.getElementById('new-post-toggle').addEventListener('click', () => {
   document.getElementById('new-post-box').classList.toggle('hidden');
