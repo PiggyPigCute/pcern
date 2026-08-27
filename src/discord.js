@@ -10,7 +10,6 @@ const WEBHOOK_FILE = 'webhook.json';
 const WEBHOOK_NAME = 'PCErn';
 
 let client = null;
-let guildId = null;
 let forumChannelId = null;
 let onEvent = () => {}; // (type, payload) => void, wired by server.js via ws.js
 
@@ -19,7 +18,6 @@ function init({ token, guild, forumChannel, onEvent: handler }) {
   if (!guild) throw new Error('GUILD_ID manquant.');
   if (!forumChannel) throw new Error('FORUM_CHANNEL_ID manquant.');
 
-  guildId = guild;
   forumChannelId = forumChannel;
   if (handler) onEvent = handler;
 
@@ -112,11 +110,20 @@ async function listForumPosts() {
   return Promise.all(threads.map(threadToPost));
 }
 
-async function getThreadMessages(threadId) {
+async function fetchOwnThread(threadId) {
   const thread = await client.channels.fetch(threadId);
   if (!thread || !thread.isThread() || thread.parentId !== forumChannelId) {
     throw new Error('Post introuvable.');
   }
+  return thread;
+}
+
+async function getThreadPost(threadId) {
+  return threadToPost(await fetchOwnThread(threadId));
+}
+
+async function getThreadMessages(threadId) {
+  const thread = await fetchOwnThread(threadId);
   const messages = await thread.messages.fetch({ limit: 100 });
   return [...messages.values()].reverse().map(messageToJSON);
 }
@@ -143,16 +150,14 @@ async function createForumPost({ title, content, username, avatarUrl }) {
     allowedMentions: { parse: [] },
     wait: true,
   });
-  return result.channelId;
+  const thread = await client.channels.fetch(result.channelId);
+  return threadToPost(thread);
 }
 
 async function postReply({ threadId, content, username, avatarUrl }) {
-  const thread = await client.channels.fetch(threadId);
-  if (!thread || !thread.isThread() || thread.parentId !== forumChannelId) {
-    throw new Error('Post introuvable.');
-  }
+  await fetchOwnThread(threadId);
   const webhookClient = await ensureWebhook();
-  await webhookClient.send({
+  const result = await webhookClient.send({
     content,
     username,
     avatarURL: avatarUrl || undefined,
@@ -160,11 +165,13 @@ async function postReply({ threadId, content, username, avatarUrl }) {
     allowedMentions: { parse: [] },
     wait: true,
   });
+  return messageToJSON(result);
 }
 
 module.exports = {
   init,
   listForumPosts,
+  getThreadPost,
   getThreadMessages,
   createForumPost,
   postReply,

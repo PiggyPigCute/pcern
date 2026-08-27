@@ -12,7 +12,14 @@ const postsRoutes = require('./src/routes/posts');
 const PORT = process.env.PORT || 3006;
 const { DISCORD_TOKEN, GUILD_ID, FORUM_CHANNEL_ID } = process.env;
 
-const missing = ['DISCORD_TOKEN', 'GUILD_ID', 'FORUM_CHANNEL_ID'].filter(name => !process.env[name]);
+const missing = [
+  'DISCORD_TOKEN',
+  'GUILD_ID',
+  'FORUM_CHANNEL_ID',
+  'SITE_URL',
+  'DISCORD_CLIENT_ID',
+  'DISCORD_CLIENT_SECRET',
+].filter(name => !process.env[name]);
 if (missing.length) {
   console.error(`Variables d'environnement manquantes : ${missing.join(', ')} (voir .env.example)`);
   process.exit(1);
@@ -27,6 +34,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/auth', authRoutes);
 app.use('/api/posts', postsRoutes);
 
+// routing client (posts avec une URL dédiée) : toute route GET restante sert
+// la page unique, qui lit location.pathname pour ouvrir le bon post — sinon
+// un F5 sur /<id_du_post> renverrait un 404 au lieu de réafficher le post
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 const server = http.createServer(app);
 ws.attach(server);
 
@@ -38,7 +52,7 @@ discord
     onEvent: ws.broadcast,
   })
   .then(() => {
-    server.listen(PORT, () => console.log(`Portail Ciroyen·ne d'Ernestie lancé sur le port ${PORT}`));
+    server.listen(PORT, () => console.log(`Portail Citoyen·ne de l'Ernestie lancé sur le port ${PORT}`));
   })
   .catch(err => {
     console.error('Échec de connexion au bot Discord :', err.message);

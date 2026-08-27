@@ -3,65 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portail Cityen·ne d'Ernestie</title>
+  <title>Portail Citoyen·ne de l'Ernestie</title>
+  <link rel="icon" href="imgs/flag.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>Portail Cityen·ne d'Ernestie</h1>
-    <div id="auth-area"></div>
-  </header>
 
-  <main>
-    <section id="posts-view">
-      <div id="new-post-box" class="card hidden">
-        <h2>Nouveau post</h2>
-        <form id="new-post-form">
+  <!-- Écran de connexion / inscription -->
+  <section id="auth-screen" class="screen-center hidden">
+    <div class="auth-card">
+      <h1>Portail Citoyen·ne</h1>
+      <p class="tagline">de l'Ernestie</p>
+
+      <div id="login-view">
+        <form id="login-form" class="auth-form">
+          <input type="email" name="email" placeholder="Adresse email" required />
+          <input type="password" name="password" placeholder="Mot de passe" required />
+          <button type="submit" class="btn-primary">Connexion</button>
+        </form>
+        <p class="error" id="login-error"></p>
+        <div class="divider">ou</div>
+        <a class="btn-discord" href="/auth/discord">
+          <img src="imgs/discord.svg" alt="" />
+          Se connecter avec Discord
+        </a>
+        <p><button type="button" class="link-button" id="show-signup">Créer un compte avec une adresse email</button></p>
+      </div>
+
+      <div id="signup-view" class="hidden">
+        <form id="signup-form" class="auth-form">
+          <input type="email" name="email" placeholder="Adresse email" required />
+          <input type="password" name="password" placeholder="Mot de passe (8+ caractères)" required minlength="8" />
+          <input type="text" name="displayName" placeholder="Pseudo affiché" required maxlength="60" />
+          <input type="url" name="avatarUrl" placeholder="URL d'avatar (optionnel)" />
+          <button type="submit" class="btn-primary">Créer le compte</button>
+        </form>
+        <p class="error" id="signup-error"></p>
+        <p><button type="button" class="link-button" id="show-login">J'ai déjà un compte</button></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Écran de vérification d'email -->
+  <section id="verify-screen" class="screen-center hidden">
+    <div class="auth-card">
+      <h1>Vérifie ton email</h1>
+      <p>Un lien de confirmation a été envoyé à ton adresse. Clique dessus pour accéder au portail.</p>
+      <p style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button type="button" class="btn-secondary" id="resend-button">Renvoyer l'email</button>
+        <button type="button" class="btn-secondary" id="verify-logout-button">Se déconnecter</button>
+      </p>
+      <p class="error" id="resend-message"></p>
+    </div>
+  </section>
+
+  <!-- Application -->
+  <div id="app-screen" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="imgs/flag.svg" alt="" />
+        <h1>Portail Citoyen·ne de l'Ernestie</h1>
+      </div>
+
+      <button type="button" class="btn-primary new-post-toggle" id="new-post-toggle">+ Nouveau post</button>
+      <div id="new-post-box" class="hidden">
+        <form id="new-post-form" class="inline-form">
           <input type="text" name="title" placeholder="Titre" required maxlength="100" />
           <textarea name="content" placeholder="Contenu du premier message" required></textarea>
-          <button type="submit">Publier</button>
+          <button type="submit" class="btn-primary">Publier</button>
         </form>
         <p class="error" id="new-post-error"></p>
       </div>
 
-      <h2>Posts du forum</h2>
       <ul id="posts-list"></ul>
-    </section>
+    </aside>
 
-    <section id="thread-view" class="hidden">
-      <button id="back-button">&larr; Retour aux posts</button>
-      <h2 id="thread-title"></h2>
-      <ul id="thread-messages"></ul>
+    <div class="main-column">
+      <div class="topbar">
+        <button type="button" class="account-button" id="account-button">
+          <img id="account-avatar" alt="" />
+        </button>
+        <div class="account-menu hidden" id="account-menu">
+          <button type="button" id="open-account">Mon compte</button>
+          <button type="button" id="logout-button">Se déconnecter</button>
+        </div>
+      </div>
 
-      <form id="reply-form" class="hidden">
-        <textarea name="content" placeholder="Votre réponse" required></textarea>
-        <button type="submit">Répondre</button>
-      </form>
-      <p class="error" id="reply-error"></p>
-    </section>
-  </main>
+      <main>
+        <p class="placeholder" id="post-placeholder">Sélectionne un post dans la liste, ou crée-en un nouveau.</p>
 
-  <template id="login-template">
-    <form id="login-form" class="auth-form">
-      <input type="text" name="username" placeholder="Pseudo" required />
-      <input type="password" name="password" placeholder="Mot de passe" required />
-      <button type="submit">Connexion</button>
-      <button type="button" id="show-signup">Créer un compte</button>
-    </form>
-    <p class="error" id="login-error"></p>
-  </template>
+        <section id="thread-view" class="hidden">
+          <button id="back-button">&larr; Retour</button>
+          <h2 id="thread-title"></h2>
+          <ul id="thread-messages"></ul>
+          <form id="reply-form" class="inline-form">
+            <textarea name="content" placeholder="Votre réponse" required></textarea>
+            <button type="submit" class="btn-primary">Répondre</button>
+          </form>
+          <p class="error" id="reply-error"></p>
+        </section>
 
-  <template id="signup-template">
-    <form id="signup-form" class="auth-form">
-      <input type="text" name="username" placeholder="Pseudo" required minlength="3" />
-      <input type="password" name="password" placeholder="Mot de passe (8+ caractères)" required minlength="8" />
-      <input type="text" name="displayName" placeholder="Nom affiché sur Discord (optionnel)" />
-      <input type="url" name="avatarUrl" placeholder="URL d'avatar (optionnel)" />
-      <button type="submit">Créer le compte</button>
-      <button type="button" id="show-login">J'ai déjà un compte</button>
-    </form>
-    <p class="error" id="signup-error"></p>
-  </template>
+        <section id="account-view" class="account-panel hidden">
+          <h2>Mon compte</h2>
+          <form id="account-form" class="inline-form">
+            <input type="text" name="displayName" placeholder="Pseudo affiché" required maxlength="60" />
+            <input type="url" name="avatarUrl" placeholder="URL d'avatar" />
+            <button type="submit" class="btn-primary">Enregistrer</button>
+          </form>
+          <p class="error" id="account-error"></p>
+          <p><button type="button" class="link-button" id="close-account">Retour</button></p>
+        </section>
+      </main>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
