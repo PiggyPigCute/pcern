@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portail Citoyen·ne de l'Ernestie</title>
-  <link rel="icon" href="imgs/flag.svg" type="image/svg+xml" />
+  <link rel="icon" href="imgs/logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -64,8 +64,11 @@
   <div id="app-screen" class="app-shell hidden">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <img src="imgs/flag.svg" alt="" />
-        <h1>Portail Citoyen·ne de l'Ernestie</h1>
+        <img src="imgs/logo.png" alt="" />
+        <div>
+          <h1>Portail Citoyen·ne</h1>
+          <p class="sidebar-tagline">de l'Ernestie</p>
+        </div>
       </div>
 
       <button type="button" class="btn-primary new-post-toggle" id="new-post-toggle">+ Nouveau post</button>
@@ -98,6 +101,7 @@
         <section id="thread-view" class="hidden">
           <div class="thread-header">
             <h2 id="thread-title"></h2>
+            <div class="starter-message" id="starter-message"></div>
           </div>
           <p class="loading-older hidden" id="loading-older">Chargement des messages précédents…</p>
           <ul id="thread-messages"></ul>

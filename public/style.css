@@ -185,8 +185,16 @@ textarea { min-height: 4rem; resize: vertical; }
   align-items: center;
   gap: 10px;
 }
-.sidebar-header img { width: 28px; height: 20px; border-radius: 3px; }
-.sidebar-header h1 { font-size: 1.1rem; color: var(--yellow); }
+.sidebar-header img { width: 36px; height: 36px; object-fit: contain; }
+.sidebar-header h1 { font-size: 1.15rem; line-height: 1.1; color: var(--yellow); }
+.sidebar-tagline {
+  margin: 2px 0 0;
+  font-family: var(--mono);
+  font-size: .65rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: rgba(246,239,226,.6);
+}
 
 #posts-list {
   list-style: none;
@@ -210,16 +218,8 @@ textarea { min-height: 4rem; resize: vertical; }
 }
 .post-item:hover { border-color: var(--yellow); }
 .post-item.is-active { background: var(--violet-bright); }
-.post-item h3 { font-size: .95rem; margin-bottom: 2px; }
-.post-item .tags { font-size: .68rem; color: var(--yellow); font-family: var(--mono); }
-.post-item .excerpt {
-  font-size: .8rem;
-  color: rgba(246,239,226,.7);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.post-item .meta { font-size: .7rem; color: rgba(246,239,226,.5); font-family: var(--mono); }
+.post-item h3 { font-size: .95rem; margin: 0; }
+.post-item .tags { margin-top: 4px; font-size: .68rem; color: var(--yellow); font-family: var(--mono); }
 
 .new-post-toggle { align-self: flex-start; }
 
@@ -335,7 +335,43 @@ main {
   padding: 20px 24px 12px;
 }
 
-#thread-title { color: var(--yellow); }
+#thread-title { color: var(--yellow); margin-bottom: 12px; }
+
+.starter-message {
+  background: rgba(246,239,226,.06);
+  border: 1px solid rgba(246,239,226,.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.starter-message .message { padding: 0; }
+.starter-message .message:hover { background: none; }
+
+.starter-content {
+  position: relative;
+}
+.starter-content.collapsed {
+  max-height: 8em;
+  overflow: hidden;
+}
+.starter-content.collapsed::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2.5em;
+  background: linear-gradient(to bottom, transparent, var(--violet-deep));
+}
+.starter-toggle {
+  margin-top: 6px;
+  font-size: .78rem;
+  color: var(--yellow); /* .link-button est pensé pour un fond clair (--paper) */
+}
+
+.starter-empty {
+  margin: 0;
+  color: rgba(246,239,226,.5);
+  font-family: var(--mono);
+  font-size: .8rem;
+}
 
 #thread-messages {
   flex: 1;

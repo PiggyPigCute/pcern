@@ -18,10 +18,16 @@ function loadOrCreateSessionSecret() {
 }
 
 const sessionSecret = loadOrCreateSessionSecret();
+const SESSIONS_FILE = 'sessions.json';
 
-// sessionId -> { userId, createdAt } ; en mémoire seulement, les sessions ne
-// survivent pas à un redémarrage (acceptable à cette échelle)
-const sessions = new Map();
+// sessionId -> { userId, createdAt } ; persisté sur disque pour qu'un
+// redémarrage du serveur (déploiement, pm2 restart) ne déconnecte pas tout
+// le monde
+const sessions = new Map(Object.entries(loadJSON(SESSIONS_FILE, {})));
+
+function persistSessions() {
+  saveJSON(SESSIONS_FILE, Object.fromEntries(sessions));
+}
 
 function sign(value) {
   return crypto.createHmac('sha256', sessionSecret).update(value).digest('hex');
@@ -183,11 +189,13 @@ function updateProfile(userId, { displayName, avatarUrl }) {
 function createSession(userId) {
   const sessionId = crypto.randomBytes(24).toString('hex');
   sessions.set(sessionId, { userId, createdAt: Date.now() });
+  persistSessions();
   return sessionId;
 }
 
 function destroySession(sessionId) {
   sessions.delete(sessionId);
+  persistSessions();
 }
 
 function parseCookies(req) {
@@ -215,7 +223,13 @@ function verifySessionToken(token) {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
 
-  return sessions.has(sessionId) ? sessionId : null;
+  const session = sessions.get(sessionId);
+  if (!session) return null;
+  if (Date.now() - session.createdAt > SESSION_MAX_AGE_MS) {
+    destroySession(sessionId);
+    return null;
+  }
+  return sessionId;
 }
 
 function setSessionCookie(res, req, sessionId) {

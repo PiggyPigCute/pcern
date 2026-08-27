@@ -29,9 +29,9 @@ function init({ token, guild, forumChannel, onEvent: handler }) {
     ],
   });
 
-  client.on('threadCreate', async thread => {
+  client.on('threadCreate', thread => {
     if (thread.parentId !== forumChannelId) return;
-    onEvent('newPost', { post: await threadToPost(thread) });
+    onEvent('newPost', { post: threadToPost(thread) });
   });
 
   client.on('messageCreate', async message => {
@@ -60,31 +60,32 @@ function tagNames(channel, appliedTags) {
   return (appliedTags || []).map(id => byId.get(id)).filter(Boolean);
 }
 
-async function threadToPost(thread) {
-  const channel = getForumChannel();
-  let excerpt = '';
-  let authorId = thread.ownerId;
+async function fetchStarter(thread) {
   try {
-    const starter = await thread.fetchStarterMessage();
-    if (starter) {
-      excerpt = starter.content;
-      authorId = starter.author.id;
-    }
+    return await thread.fetchStarterMessage();
   } catch {
-    // le message de départ peut avoir été supprimé
+    return null; // le message de départ peut avoir été supprimé
   }
+}
 
+function threadSummary(thread) {
+  const channel = getForumChannel();
   return {
     id: thread.id,
     title: thread.name,
-    authorId,
-    excerpt,
     tags: tagNames(channel, thread.appliedTags),
     messageCount: thread.messageCount ?? 0,
     archived: thread.archived,
     locked: thread.locked,
     createdAt: thread.createdAt,
   };
+}
+
+// version légère (liste de la sidebar, notifications de création) : pas
+// besoin du message de départ ici, ça évite une résolution d'avatar/pseudo
+// par post à chaque chargement de la liste
+function threadToPost(thread) {
+  return threadSummary(thread);
 }
 
 async function resolveDisplayName(message) {
@@ -118,7 +119,7 @@ async function listForumPosts() {
   ]);
   const threads = [...active.threads.values(), ...archived.threads.values()];
   threads.sort((a, b) => b.createdTimestamp - a.createdTimestamp);
-  return Promise.all(threads.map(threadToPost));
+  return threads.map(threadToPost);
 }
 
 async function fetchOwnThread(threadId) {
@@ -129,20 +130,30 @@ async function fetchOwnThread(threadId) {
   return thread;
 }
 
+// version complète (ouverture d'un post précis) : inclut le message de
+// départ, affiché séparément de la liste des messages côté client
 async function getThreadPost(threadId) {
-  return threadToPost(await fetchOwnThread(threadId));
+  const thread = await fetchOwnThread(threadId);
+  const starter = await fetchStarter(thread);
+  return {
+    ...threadSummary(thread),
+    starterMessage: starter ? await messageToJSON(starter) : null,
+  };
 }
 
 const MESSAGES_PAGE_SIZE = 50;
 
 // ne charge que les derniers messages par défaut ; passer `before` (un id de
-// message) pour remonter dans l'historique, comme le fait Discord lui-même
+// message) pour remonter dans l'historique, comme le fait Discord lui-même.
+// Le message de départ du post est exclu : il est affiché séparément (voir
+// threadToPost/starterMessage), en dehors de la liste défilante.
 async function getThreadMessages(threadId, { before, limit = MESSAGES_PAGE_SIZE } = {}) {
   const thread = await fetchOwnThread(threadId);
   const options = { limit };
   if (before) options.before = before;
-  const page = await thread.messages.fetch(options);
-  const messages = await Promise.all([...page.values()].reverse().map(messageToJSON));
+  const [page, starter] = await Promise.all([thread.messages.fetch(options), fetchStarter(thread)]);
+  const rest = [...page.values()].filter(m => !starter || m.id !== starter.id);
+  const messages = await Promise.all(rest.reverse().map(messageToJSON));
   return { messages, hasMore: page.size === limit };
 }
 
@@ -169,7 +180,7 @@ async function createForumPost({ title, content, username, avatarUrl }) {
     wait: true,
   });
   const thread = await client.channels.fetch(result.channelId);
-  const post = await threadToPost(thread);
+  const post = threadToPost(thread);
   // diffusé tout de suite avec les infos qu'on connaît nous-mêmes (pseudo/
   // avatar exacts) plutôt que d'attendre le seul écho du gateway Discord,
   // qui ne renvoie pas de façon fiable l'avatar personnalisé d'un webhook

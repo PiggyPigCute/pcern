@@ -232,8 +232,6 @@ function renderPosts() {
     });
     li.appendChild(h('h3', { text: post.title }));
     if (post.tags.length) li.appendChild(h('div', { class: 'tags', text: post.tags.join(', ') }));
-    if (post.excerpt) li.appendChild(h('p', { class: 'excerpt', text: post.excerpt }));
-    li.appendChild(h('span', { class: 'meta', text: `${post.messageCount} message(s)` }));
     list.appendChild(li);
   });
 }
@@ -257,9 +255,11 @@ async function openThread(id) {
   const list = document.getElementById('thread-messages');
   titleEl.textContent = '…';
   list.innerHTML = '';
+  document.getElementById('starter-message').innerHTML = '';
   try {
     const { post, messages, hasMore } = await api(`/api/posts/${id}`);
     titleEl.textContent = post.title;
+    renderStarterMessage(post.starterMessage);
     upsertPostInList(post);
     highlightActivePost(id);
     state.hasMoreMessages = hasMore;
@@ -311,14 +311,40 @@ function formatTimestamp(iso) {
   }).format(date);
 }
 
-function buildMessageRow(m) {
+function buildMessageRow(m, tag = 'li') {
   const avatar = h('img', { class: 'avatar', attrs: { src: m.authorAvatar || '', alt: '' } });
   const header = h('div', { class: 'message-header' }, [
     h('strong', { text: m.authorName }),
     h('span', { class: 'timestamp', text: formatTimestamp(m.createdAt) }),
   ]);
   const body = h('div', { class: 'message-body' }, [header, h('p', { text: m.content })]);
-  return h('li', { class: 'message', attrs: { 'data-message-id': m.id } }, [avatar, body]);
+  return h(tag, { class: 'message', attrs: { 'data-message-id': m.id } }, [avatar, body]);
+}
+
+function renderStarterMessage(m) {
+  const container = document.getElementById('starter-message');
+  container.innerHTML = '';
+  if (!m) {
+    container.appendChild(h('p', { class: 'starter-empty', text: "Message d'origine supprimé." }));
+    return;
+  }
+
+  const row = buildMessageRow(m, 'div');
+  const content = row.querySelector('.message-body p');
+  content.classList.add('starter-content', 'collapsed');
+
+  const toggle = h('button', { class: 'link-button starter-toggle hidden', text: 'Afficher plus' });
+  toggle.addEventListener('click', () => {
+    const collapsed = content.classList.toggle('collapsed');
+    toggle.textContent = collapsed ? 'Afficher plus' : 'Afficher moins';
+  });
+  row.querySelector('.message-body').appendChild(toggle);
+  container.appendChild(row);
+
+  // ne montrer le bouton que si le contenu dépasse réellement la hauteur repliée
+  requestAnimationFrame(() => {
+    if (content.scrollHeight > content.clientHeight + 2) toggle.classList.remove('hidden');
+  });
 }
 
 function appendMessage(m) {
